@@ -73,6 +73,8 @@ export class Layout {
 
     draw(doc: DocumentView, e: Element, ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
 
+        console.info("[draw] ", x, y, width, height);
+
         let x0 = this.x + x;
         let y0 = this.y + y;
         let dh = this.height * 0.5;
@@ -85,6 +87,8 @@ export class Layout {
         let mr = Math.min(r, width);
         let mt = Math.max(t, 0);
         let mb = Math.min(b, height);
+
+        console.info("[layout] ", l, r, t, b);
 
         if (mr > ml && mb > mt) {
 

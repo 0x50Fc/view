@@ -62,7 +62,7 @@ export class View {
 
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
-        ctx.fillStyle = doc.theme.color;
+        ctx.fillStyle = doc.theme.fontColor;
         ctx.font = doc.theme.fontSize + 'px normal';
         ctx.fillText(title, doc.theme.padding.left, doc.theme.padding.top);
 

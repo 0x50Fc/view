@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta content="utf-8" name="charset" />
+    <script type="text/javascript" src="kk.view.js"></script>
+    <style type="text/css">
+
+        #mindmap {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            width: 100%;
+            height: 100%;
+        }
+            
+    </style>
+</head>
+
+<body>
+    <canvas id="mindmap"></canvas>
+    <script type="text/javascript">
+        var v = document.getElementById('mindmap');
+        v.width = v.clientWidth * window.devicePixelRatio;
+        v.height = v.clientHeight * window.devicePixelRatio;
+        var ctx = v.getContext('2d');
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        var doc = new kk.mindmap.Document();
+        doc.root
+            .setData({ title: '思维导图' })
+            .add().setData({ title: '子节点' }).done()
+            .add().setData({ title: '子节点' }).done()
+            .add().setData({ title: '子节点' }).done()
+            .add().setData({ title: '子节点' }).done();
+        var view = new kk.mindmap.DocumentView(doc);
+        view.calculate(ctx);
+        view.draw(ctx, v.clientWidth * 0.2, v.clientHeight * 0.5, v.clientWidth, v.clientHeight);
+    </script>
+</body>
+
+</html>

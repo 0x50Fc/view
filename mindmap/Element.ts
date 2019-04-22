@@ -288,6 +288,18 @@ export class Element extends EventEmitter {
         return false;
     }
 
+    setData(data: any): Element {
+        this.data = data;
+        return this;
+    }
+
+    done(): Element {
+        if (this.parent !== undefined) {
+            return this.parent;
+        }
+        return this;
+    }
+
     public emit(name: string, event: Event): void {
         super.emit(name, event);
 
@@ -318,6 +330,6 @@ export function forEach(e: Element, fn: (e: Element) => boolean): boolean {
 
         return true;
     }
-    
+
     return false;
 }

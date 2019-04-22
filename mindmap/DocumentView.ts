@@ -19,10 +19,10 @@ export class DocumentView {
             this.theme = {
                 fontSize: 14,
                 padding: {
-                    left: '6',
-                    right: '6',
-                    top: '4',
-                    bottom: '4'
+                    left: 6,
+                    right: 6,
+                    top: 6,
+                    bottom: 6
                 },
                 fontColor: '#fff',
                 borderColor: '#000',
