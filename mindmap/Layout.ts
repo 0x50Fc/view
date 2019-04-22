@@ -43,7 +43,7 @@ export class Layout {
             v.calculate(doc, p, ctx);
             height += v.height;
             if (v.width > maxWidth) {
-                v.width = maxWidth;
+                maxWidth = v.width;
             }
             count++;
             p = p.nextSibling;
@@ -51,29 +51,29 @@ export class Layout {
 
         if (count > 1) {
             height += doc.theme.divideY * (count - 1);
+            let top = 0;
+
+            p = e.firstChild;
+
+            while (p) {
+                let v = doc.getLayout(p);
+                v.y = top;
+                v.x = view.width + doc.theme.divideX;
+                top += v.height + doc.theme.divideY;
+                p = p.nextSibling;
+            }
+
+            this.height = height;
+            this.width = view.width + doc.theme.divideX + maxWidth;
+        } else {
+            this.height = view.height;
+            this.width = view.width;
         }
-
-        let top = - height * 0.5;
-
-        p = e.firstChild;
-
-        while (p) {
-            let v = doc.getLayout(p);
-            v.y = top;
-            v.x = view.width + doc.theme.divideX;
-            top += v.height + doc.theme.divideY;
-            p = p.nextSibling;
-        }
-
-        this.height = height;
-        this.width = view.width + doc.theme.divideX + maxWidth;
 
     }
 
 
     draw(doc: DocumentView, e: Element, ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
-
-        console.info("[draw] ", x, y, width, height);
 
         let x0 = this.x + x;
         let y0 = this.y + y;
@@ -88,7 +88,6 @@ export class Layout {
         let mt = Math.max(t, 0);
         let mb = Math.min(b, height);
 
-        console.info("[layout] ", l, r, t, b);
 
         if (mr > ml && mb > mt) {
 
