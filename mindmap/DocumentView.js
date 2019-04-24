@@ -1,22 +1,15 @@
-
-import { Document } from "./Document"
-import { Element, forEach } from "./Element";
-import { View } from "./View";
-import { Layout } from "./Layout";
-import { Outlet } from "./Outlet";
-import { Editor } from './Editor';
-
-export class DocumentView {
-
-    readonly document: Document
-
-    theme: any
-
-    constructor(document: Document, theme?: any) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const View_1 = require("./View");
+const Layout_1 = require("./Layout");
+const Editor_1 = require("./Editor");
+class DocumentView {
+    constructor(document, theme) {
         this.document = document;
         if (theme) {
             this.theme = theme;
-        } else {
+        }
+        else {
             this.theme = {
                 font: '12px monospace',
                 fontSize: 12,
@@ -47,16 +40,13 @@ export class DocumentView {
             };
         }
     }
-
-    get In(): Outlet {
-        return this.getLayout(this.document.root).In
+    get In() {
+        return this.getLayout(this.document.root).In;
     }
-
-    createView(element: Element): View {
-        return new View();
+    createView(element) {
+        return new View_1.View();
     }
-
-    getView(element: Element): View {
+    getView(element) {
         if (element.data === undefined) {
             element.data = {};
         }
@@ -65,12 +55,10 @@ export class DocumentView {
         }
         return element.data.$view;
     }
-
-    createLayout(element: Element): Layout {
-        return new Layout();
+    createLayout(element) {
+        return new Layout_1.Layout();
     }
-
-    getLayout(element: Element): Layout {
+    getLayout(element) {
         if (element.data === undefined) {
             element.data = {};
         }
@@ -79,8 +67,7 @@ export class DocumentView {
         }
         return element.data.$layout;
     }
-
-    draw(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+    draw(ctx, x, y, width, height) {
         let v = this.getLayout(this.document.root);
         v.calculate(this, this.document.root, ctx);
         this.drawOutlet(ctx, x, y, width, height, this.document.root);
@@ -89,22 +76,16 @@ export class DocumentView {
             this.onDrawFocusElement(ctx, this._focus);
         }
     }
-
-    protected onDrawFocusElement(ctx: CanvasRenderingContext2D, e: Element): void {
-
+    onDrawFocusElement(ctx, e) {
         let view = this.getView(e);
-
-        ctx.save()
-
+        ctx.save();
         ctx.translate(view.x, view.y);
-
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         ctx.fillStyle = this.theme.fontColor;
         ctx.font = this.theme.font;
         ctx.textBaseline = 'middle';
         ctx.fillStyle = this.theme.attr.fontColor;
-
         let top = view.height + this.theme.attr.divideY;
         for (let key in e.data) {
             if (key.length > 0 && key.substr(0, 1) == '@') {
@@ -113,18 +94,13 @@ export class DocumentView {
                 top += this.theme.fontSize + this.theme.attr.divideY;
             }
         }
-
         ctx.restore();
-
     }
-
-    protected onDrawOutlet(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, width: number, height: number): void {
-
+    onDrawOutlet(ctx, x0, y0, x1, y1, width, height) {
         let l = Math.max(Math.min(x0, x1), 0);
         let r = Math.min(Math.max(x0, x1), width);
         let t = Math.max(Math.min(y0, y1), 0);
         let b = Math.min(Math.max(y0, y1), height);
-
         if (l < r || t < b) {
             ctx.save();
             ctx.beginPath();
@@ -134,12 +110,10 @@ export class DocumentView {
             ctx.stroke();
             ctx.restore();
         }
-
     }
-
-    protected drawOutlet(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, e?: Element): void {
+    drawOutlet(ctx, x, y, width, height, e) {
         if (e === undefined) {
-            e = this.document.root
+            e = this.document.root;
         }
         if (this.isAutomatic(e)) {
             return;
@@ -155,10 +129,9 @@ export class DocumentView {
             p = p.nextSibling;
         }
     }
-
-    elementAt(x: number, y: number, dx: number = 0, dy: number = 0, e?: Element): Element | undefined {
+    elementAt(x, y, dx = 0, dy = 0, e) {
         if (e === undefined) {
-            e = this.document.root
+            e = this.document.root;
         }
         let v = this.getLayout(e);
         let view = this.getView(e);
@@ -179,76 +152,59 @@ export class DocumentView {
         }
         return undefined;
     }
-
-    protected _focus: Element | undefined
-
-    get focus(): Element | undefined {
-        return this._focus
+    get focus() {
+        return this._focus;
     }
-
-    set focus(e: Element | undefined) {
+    set focus(e) {
         this._focus = e;
     }
-
-    isFocus(e: Element): boolean {
+    isFocus(e) {
         return this._focus == e;
     }
-
-    protected _editor: Editor | undefined;
-
-    createEditor(e: Element): Editor {
-        return new Editor(e);
+    createEditor(e) {
+        return new Editor_1.Editor(e);
     }
-
-    isEditting(): boolean {
+    isEditting() {
         return this._editor !== undefined;
     }
-
-    updateEditting(x: number, y: number): void {
+    updateEditting(x, y) {
         if (this._editor !== undefined) {
             this._editor.updateEditting(this, x, y);
         }
     }
-
-    beginEditting(e: Element, x: number, y: number): void {
+    beginEditting(e, x, y) {
         if (this._editor) {
             this._editor.cancelEditting(this);
         }
         this._editor = this.createEditor(e);
         this._editor.beginEditting(this, x, y);
     }
-
-    cancelEditting(): void {
+    cancelEditting() {
         if (this._editor) {
             this._editor.cancelEditting(this);
             this._editor = undefined;
         }
     }
-
-    commitEditting(): void {
+    commitEditting() {
         if (this._editor) {
             this._editor.commitEditting(this);
             this._editor = undefined;
         }
     }
-
-    getTopElement(e: Element): Element | undefined {
+    getTopElement(e) {
         return this.getLayout(e).getTopElement(this, e);
     }
-
-    getBottomElement(e: Element): Element | undefined {
+    getBottomElement(e) {
         return this.getLayout(e).getBottomElement(this, e);
     }
-
-    getLeftElement(e: Element): Element | undefined {
+    getLeftElement(e) {
         return this.getLayout(e).getLeftElement(this, e);
     }
-
-    getRightElement(e: Element): Element | undefined {
+    getRightElement(e) {
         return this.getLayout(e).getRightElement(this, e);
     }
-
-    isAutomatic(p: Element): boolean {
-        return typeof p.data == 'object' && p.data['@automatic'] && (this._focus === undefined || !p.contains(this._focus))
+    isAutomatic(p) {
+        return typeof p.data == 'object' && p.data['@automatic'] && (this._focus === undefined || !p.contains(this._focus));
     }
 }
+exports.DocumentView = DocumentView;

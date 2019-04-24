@@ -41,11 +41,12 @@ var Document = /** @class */ (function (_super) {
 }(Event_1.EventEmitter));
 exports.Document = Document;
 
-},{"./Element":3,"./Event":4}],2:[function(require,module,exports){
+},{"./Element":4,"./Event":5}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var View_1 = require("./View");
 var Layout_1 = require("./Layout");
+var Editor_1 = require("./Editor");
 var DocumentView = /** @class */ (function () {
     function DocumentView(document, theme) {
         this.document = document;
@@ -54,38 +55,31 @@ var DocumentView = /** @class */ (function () {
         }
         else {
             this.theme = {
-                fontSize: 14,
+                fontSize: 12,
                 padding: {
-                    left: 6,
-                    right: 6,
+                    left: 8,
+                    right: 8,
                     top: 6,
                     bottom: 6
                 },
                 fontColor: '#fff',
-                borderColor: '#000',
-                borderWidth: '1',
-                borderRadius: '2',
-                backgroundColor: '#000',
-                lineColor: '#000',
-                divideY: 10,
-                divideX: 20
+                borderColor: '#333',
+                borderWidth: 1,
+                borderRadius: 2,
+                backgroundColor: '#333',
+                lineColor: '#666',
+                lineWidth: 1,
+                lineY: 0.9,
+                divideY: 16,
+                divideX: 32,
+                focus: {
+                    backgroundColor: '#000',
+                    borderColor: '#000'
+                }
             };
         }
+        this._focus = document.root;
     }
-    Object.defineProperty(DocumentView.prototype, "width", {
-        get: function () {
-            return this.getLayout(this.document.root).width;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DocumentView.prototype, "height", {
-        get: function () {
-            return this.getLayout(this.document.root).height;
-        },
-        enumerable: true,
-        configurable: true
-    });
     Object.defineProperty(DocumentView.prototype, "In", {
         get: function () {
             return this.getLayout(this.document.root).In;
@@ -117,13 +111,26 @@ var DocumentView = /** @class */ (function () {
         }
         return element.data.layout;
     };
-    DocumentView.prototype.calculate = function (ctx) {
-        this.getLayout(this.document.root).calculate(this, this.document.root, ctx);
-    };
     DocumentView.prototype.draw = function (ctx, x, y, width, height) {
-        this.getLayout(this.document.root).draw(this, this.document.root, ctx, x, y, width, height);
+        var v = this.getLayout(this.document.root);
+        v.calculate(this, this.document.root, ctx);
+        this.drawOutlet(ctx, x, y, width, height, this.document.root);
+        v.draw(this, this.document.root, ctx, x, y, width, height);
     };
-    DocumentView.prototype.onDrawOutlet = function (ctx, x0, y0, x1, y1) {
+    DocumentView.prototype.onDrawOutlet = function (ctx, x0, y0, x1, y1, width, height) {
+        var l = Math.max(Math.min(x0, x1), 0);
+        var r = Math.min(Math.max(x0, x1), width);
+        var t = Math.max(Math.min(y0, y1), 0);
+        var b = Math.min(Math.max(y0, y1), height);
+        if (l < r || t < b) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.bezierCurveTo(x0, y0, (x0 + x1) * 0.5, y0 + (y1 - y0) * this.theme.lineY, x1, y1);
+            ctx.strokeStyle = this.theme.lineColor;
+            ctx.lineWidth = this.theme.lineWidth;
+            ctx.stroke();
+            ctx.restore();
+        }
     };
     DocumentView.prototype.drawOutlet = function (ctx, x, y, width, height, e) {
         if (e === undefined) {
@@ -135,15 +142,104 @@ var DocumentView = /** @class */ (function () {
         var p = e.firstChild;
         while (p) {
             var a = this.getLayout(p);
-            this.onDrawOutlet(ctx, x0, y0, x + a.x, y + a.y);
+            this.onDrawOutlet(ctx, x0, y0, x + a.x, y + a.y, width, height);
+            this.drawOutlet(ctx, x + a.x, y + a.y, width, height, p);
             p = p.nextSibling;
+        }
+    };
+    DocumentView.prototype.elementAt = function (x, y, dx, dy, e) {
+        if (dx === void 0) { dx = 0; }
+        if (dy === void 0) { dy = 0; }
+        if (e === undefined) {
+            e = this.document.root;
+        }
+        var v = this.getLayout(e);
+        var view = this.getView(e);
+        var l = dx + v.x;
+        var r = l + view.width;
+        var t = dy + v.y - view.height * 0.5;
+        var b = dy + v.y + view.height * 0.5;
+        if (x >= l && x < r && y >= t && y < b) {
+            return e;
+        }
+        var p = e.firstChild;
+        while (p) {
+            var r_1 = this.elementAt(x, y, dx + v.x, dy + v.y, p);
+            if (r_1 !== undefined) {
+                return r_1;
+            }
+            p = p.nextSibling;
+        }
+        return undefined;
+    };
+    Object.defineProperty(DocumentView.prototype, "focus", {
+        get: function () {
+            return this._focus;
+        },
+        set: function (e) {
+            this._focus = e;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    DocumentView.prototype.isFocus = function (e) {
+        return this._focus == e;
+    };
+    DocumentView.prototype.createEditor = function (e) {
+        return new Editor_1.Editor(e);
+    };
+    DocumentView.prototype.beginEditting = function (e, x, y) {
+        if (this._editor) {
+            this._editor.cancelEditting(this);
+        }
+        this._editor = this.createEditor(e);
+        this._editor.beginEditting(this, x, y);
+    };
+    DocumentView.prototype.cancelEditting = function () {
+        if (this._editor) {
+            this._editor.cancelEditting(this);
+            this._editor = undefined;
+        }
+    };
+    DocumentView.prototype.commitEditting = function () {
+        if (this._editor) {
+            this._editor.commitEditting(this);
+            this._editor = undefined;
         }
     };
     return DocumentView;
 }());
 exports.DocumentView = DocumentView;
 
-},{"./Layout":5,"./View":6}],3:[function(require,module,exports){
+},{"./Editor":3,"./Layout":6,"./View":7}],3:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Editor = /** @class */ (function () {
+    function Editor(element) {
+        this.element = element;
+    }
+    Editor.prototype.beginEditting = function (doc, x, y) {
+        var p = this.element;
+        while (p) {
+            var v = doc.getLayout(p);
+            x += v.x;
+            y += v.y;
+            p = p.parent;
+        }
+        var view = doc.getView(this.element);
+        this.onShowEditting(doc, x, y - view.height * 0.5, view.width, view.height);
+    };
+    Editor.prototype.commitEditting = function (doc) {
+    };
+    Editor.prototype.cancelEditting = function (doc) {
+    };
+    Editor.prototype.onShowEditting = function (doc, x, y, width, height) {
+    };
+    return Editor;
+}());
+exports.Editor = Editor;
+
+},{}],4:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -447,7 +543,7 @@ function forEach(e, fn) {
 }
 exports.forEach = forEach;
 
-},{"./Event":4}],4:[function(require,module,exports){
+},{"./Event":5}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var lib_1 = require("./lib");
@@ -558,15 +654,17 @@ var EventEmitter = /** @class */ (function () {
 }());
 exports.EventEmitter = EventEmitter;
 
-},{"./lib":8}],5:[function(require,module,exports){
+},{"./lib":9}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Layout = /** @class */ (function () {
     function Layout() {
         this.x = 0;
         this.y = 0;
-        this.width = 0;
-        this.height = 0;
+        this.top = 0;
+        this.bottom = 0;
+        this.left = 0;
+        this.right = 0;
         this.In = { x: 0, y: 0 };
         this.Out = { x: 0, y: 0 };
     }
@@ -584,38 +682,50 @@ var Layout = /** @class */ (function () {
         while (p) {
             var v = doc.getLayout(p);
             v.calculate(doc, p, ctx);
-            height += v.height;
-            if (v.width > maxWidth) {
-                maxWidth = v.width;
+            height += v.bottom - v.top;
+            if (v.right - v.left > maxWidth) {
+                maxWidth = v.right - v.left;
             }
             count++;
             p = p.nextSibling;
         }
         if (count > 1) {
             height += doc.theme.divideY * (count - 1);
-            var top_1 = 0;
+            var top_1 = -height * 0.5;
+            this.top = top_1;
             p = e.firstChild;
             while (p) {
                 var v = doc.getLayout(p);
-                v.y = top_1;
+                v.y = top_1 + (v.bottom - v.top) * 0.5;
                 v.x = view.width + doc.theme.divideX;
-                top_1 += v.height + doc.theme.divideY;
+                top_1 += (v.bottom - v.top) + doc.theme.divideY;
                 p = p.nextSibling;
             }
-            this.height = height;
-            this.width = view.width + doc.theme.divideX + maxWidth;
+            this.bottom = top_1;
+            this.left = 0;
+            this.right = view.width + doc.theme.divideX + maxWidth;
         }
         else {
-            this.height = view.height;
-            this.width = view.width;
+            this.top = -view.height * 0.5;
+            this.bottom = -this.top;
+            this.right = view.width;
+            this.left = 0;
+            p = e.firstChild;
+            while (p) {
+                var v = doc.getLayout(p);
+                v.y = 0;
+                v.x = view.width + doc.theme.divideX;
+                p = p.nextSibling;
+            }
         }
     };
     Layout.prototype.draw = function (doc, e, ctx, x, y, width, height) {
         var x0 = this.x + x;
         var y0 = this.y + y;
-        var dh = this.height * 0.5;
+        var view = doc.getView(e);
+        var dh = view.height * 0.5;
         var l = x0;
-        var r = x0 + this.width;
+        var r = x0 + this.right;
         var t = y0 - dh;
         var b = y0 + dh;
         var ml = Math.max(l, 0);
@@ -625,7 +735,7 @@ var Layout = /** @class */ (function () {
         if (mr > ml && mb > mt) {
             ctx.save();
             ctx.translate(l, t);
-            doc.getView(e).draw(doc, e, ctx);
+            view.draw(doc, e, ctx);
             ctx.restore();
             var p = e.firstChild;
             while (p) {
@@ -634,11 +744,55 @@ var Layout = /** @class */ (function () {
             }
         }
     };
+    Layout.prototype.getTopElement = function (doc, e) {
+        var p = e.prevSibling;
+        if (p !== undefined) {
+            return p;
+        }
+        p = e.parent;
+        if (p !== undefined) {
+            p = p.prevSibling;
+            if (p !== undefined) {
+                p = p.lastChild;
+                if (p !== undefined) {
+                    return p;
+                }
+            }
+        }
+        return undefined;
+    };
+    Layout.prototype.getBottomElement = function (doc, e) {
+        var p = e.nextSibling;
+        if (p !== undefined) {
+            return p;
+        }
+        p = e.parent;
+        if (p !== undefined) {
+            p = p.nextSibling;
+            if (p !== undefined) {
+                p = p.firstChild;
+                if (p !== undefined) {
+                    return p;
+                }
+            }
+        }
+        return undefined;
+    };
+    Layout.prototype.getLeftElement = function (doc, e) {
+        var p = e.parent;
+        if (p !== undefined) {
+            return p;
+        }
+        return undefined;
+    };
+    Layout.prototype.getRightElement = function (doc, e) {
+        return e.firstChild;
+    };
     return Layout;
 }());
 exports.Layout = Layout;
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var draw_1 = require("./draw");
@@ -657,7 +811,13 @@ var View = /** @class */ (function () {
     View.prototype.draw = function (doc, e, ctx) {
         var title = e.data.title || '';
         var view = doc.getView(e);
-        if (doc.theme.backgroundColor) {
+        var backgroundColor = doc.theme.backgroundColor;
+        var borderColor = doc.theme.borderColor;
+        if (doc.isFocus(e)) {
+            backgroundColor = doc.theme.focus.backgroundColor;
+            borderColor = doc.theme.focus.borderColor;
+        }
+        if (backgroundColor) {
             ctx.beginPath();
             if (doc.theme.borderRadius > 0) {
                 draw_1.addRoundedRect(ctx, 0, 0, view.width, view.height, doc.theme.borderRadius);
@@ -665,10 +825,10 @@ var View = /** @class */ (function () {
             else {
                 ctx.rect(0, 0, view.width, view.height);
             }
-            ctx.fillStyle = doc.theme.backgroundColor;
+            ctx.fillStyle = backgroundColor;
             ctx.fill();
         }
-        if (doc.theme.borderWidth > 0 && doc.theme.borderColor) {
+        if (doc.theme.borderWidth > 0 && borderColor) {
             ctx.beginPath();
             if (doc.theme.borderRadius > 0) {
                 draw_1.addRoundedRect(ctx, 0, 0, view.width, view.height, doc.theme.borderRadius);
@@ -676,7 +836,7 @@ var View = /** @class */ (function () {
             else {
                 ctx.rect(0, 0, view.width, view.height);
             }
-            ctx.strokeStyle = doc.theme.borderColor;
+            ctx.strokeStyle = borderColor;
             ctx.lineWidth = doc.theme.borderWidth;
             ctx.stroke();
         }
@@ -690,7 +850,7 @@ var View = /** @class */ (function () {
 }());
 exports.View = View;
 
-},{"./draw":7}],7:[function(require,module,exports){
+},{"./draw":8}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function addRoundedRect(ctx, x, y, width, height, r) {
@@ -712,7 +872,7 @@ function addRoundedRect(ctx, x, y, width, height, r) {
 }
 exports.addRoundedRect = addRoundedRect;
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function hasPrefix(s, p) {
@@ -728,13 +888,14 @@ function hasSuffix(s, p) {
 }
 exports.hasSuffix = hasSuffix;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 
 var mindmap = {
     DocumentView: require('./bin/DocumentView').DocumentView,
     Document: require('./bin/Document').Document,
     Element: require('./bin/Element').Element,
-    View: require('./bin/View').View
+    View: require('./bin/View').View,
+    Editor: require('./bin/Editor').Editor
 };
 
 window.kk = {
@@ -742,4 +903,4 @@ window.kk = {
 };
 
 
-},{"./bin/Document":1,"./bin/DocumentView":2,"./bin/Element":3,"./bin/View":6}]},{},[9]);
+},{"./bin/Document":1,"./bin/DocumentView":2,"./bin/Editor":3,"./bin/Element":4,"./bin/View":7}]},{},[10]);
