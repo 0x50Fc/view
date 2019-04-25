@@ -78,7 +78,11 @@ class Layout {
         if (mr > ml && mb > mt) {
             view.x = l;
             view.y = t;
+            view.visible = true;
             view.draw(doc, e, ctx);
+        }
+        else {
+            view.visible = false;
         }
         if (doc.isAutomatic(e)) {
             return;

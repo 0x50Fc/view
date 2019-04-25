@@ -85,7 +85,7 @@ export class DocumentView {
         v.calculate(this, this.document.root, ctx);
         this.drawOutlet(ctx, x, y, width, height, this.document.root);
         v.draw(this, this.document.root, ctx, x, y, width, height);
-        if (this._focus !== undefined) {
+        if (this._focus !== undefined && this.getView(this._focus).visible) {
             this.onDrawFocusElement(ctx, this._focus);
         }
     }
